@@ -1,0 +1,202 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Import SF Pro Display font */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+/* Custom CSS for Things 3 inspired design */
+:root {
+  /* Family member colors */
+  --family-gonzalo: #007AFF;
+  --family-mariapaz: #FF3B30;
+  --family-borja: #34C759;
+  --family-melody: #AF52DE;
+  
+  /* Things 3 color palette */
+  --background-main: #F7F7F7;
+  --background-card: #FFFFFF;
+  --accent-blue: #007AFF;
+  --accent-yellow: #FFD60A;
+  --gray-secondary: #8E8E93;
+  --gray-tertiary: #C7C7CC;
+  
+  /* Spacing (8px grid) */
+  --spacing-1: 8px;
+  --spacing-2: 16px;
+  --spacing-3: 24px;
+  --spacing-4: 32px;
+  --spacing-5: 40px;
+  
+  /* Border radius */
+  --radius-card: 10px;
+  --radius-button: 6px;
+  
+  /* Shadows */
+  --shadow-card: 0 1px 3px rgba(0,0,0,0.1);
+  --shadow-card-hover: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+/* Base styles */
+html {
+  font-family: 'Inter', 'SF Pro Display', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  background-color: var(--background-main);
+  color: #1d1d1f;
+  line-height: 1.6;
+}
+
+/* Custom component classes */
+@layer components {
+  /* Card styles */
+  .card {
+    @apply bg-background-card rounded-card shadow-card p-4 transition-shadow duration-200;
+  }
+  
+  .card:hover {
+    @apply shadow-card-hover;
+  }
+  
+  /* Button styles */
+  .btn-primary {
+    @apply bg-accent-blue text-white px-4 py-2 rounded-button font-medium 
+           hover:bg-blue-600 transition-colors duration-200;
+  }
+  
+  .btn-secondary {
+    @apply bg-gray-100 text-gray-700 px-4 py-2 rounded-button font-medium 
+           hover:bg-gray-200 transition-colors duration-200;
+  }
+  
+  /* Input styles */
+  .input-primary {
+    @apply w-full px-3 py-2 border border-gray-tertiary rounded-button 
+           focus:ring-2 focus:ring-accent-blue focus:border-transparent 
+           transition-all duration-200;
+  }
+  
+  /* Family member color utilities */
+  .text-family-gonzalo { color: var(--family-gonzalo); }
+  .text-family-mariapaz { color: var(--family-mariapaz); }
+  .text-family-borja { color: var(--family-borja); }
+  .text-family-melody { color: var(--family-melody); }
+  
+  .bg-family-gonzalo { background-color: var(--family-gonzalo); }
+  .bg-family-mariapaz { background-color: var(--family-mariapaz); }
+  .bg-family-borja { background-color: var(--family-borja); }
+  .bg-family-melody { background-color: var(--family-melody); }
+  
+  /* Task status indicators */
+  .task-pending {
+    @apply border-l-4 border-gray-300;
+  }
+  
+  .task-in-progress {
+    @apply border-l-4 border-accent-blue;
+  }
+  
+  .task-completed {
+    @apply border-l-4 border-green-500 opacity-75;
+  }
+  
+  .task-cancelled {
+    @apply border-l-4 border-red-500 opacity-50;
+  }
+  
+  /* Grocery category colors */
+  .category-produce { @apply bg-green-100 text-green-800; }
+  .category-dairy { @apply bg-blue-100 text-blue-800; }
+  .category-meat { @apply bg-red-100 text-red-800; }
+  .category-pantry { @apply bg-yellow-100 text-yellow-800; }
+  .category-household { @apply bg-purple-100 text-purple-800; }
+  .category-other { @apply bg-gray-100 text-gray-800; }
+  
+  /* Animation classes */
+  .animate-fade-in {
+    animation: fadeIn 0.2s ease-in-out;
+  }
+  
+  .animate-slide-up {
+    animation: slideUp 0.3s ease-out;
+  }
+  
+  .animate-scale-in {
+    animation: scaleIn 0.2s ease-out;
+  }
+  
+  /* Checkbox animations */
+  .checkbox-completed {
+    @apply transform scale-110 transition-transform duration-200;
+  }
+  
+  /* Sidebar styles */
+  .sidebar {
+    @apply bg-background-card border-r border-gray-tertiary h-full;
+  }
+  
+  .sidebar-item {
+    @apply flex items-center px-4 py-2 text-gray-700 hover:bg-gray-50 
+           rounded-md mx-2 transition-colors duration-200 cursor-pointer;
+  }
+  
+  .sidebar-item.active {
+    @apply bg-accent-blue text-white;
+  }
+  
+  /* Mobile responsive utilities */
+  .mobile-hidden {
+    @apply hidden md:block;
+  }
+  
+  .mobile-only {
+    @apply block md:hidden;
+  }
+}
+
+/* Custom scrollbar for webkit browsers */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--gray-tertiary);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--gray-secondary);
+}
+
+/* Focus styles for accessibility */
+*:focus {
+  outline: none;
+}
+
+*:focus-visible {
+  outline: 2px solid var(--accent-blue);
+  outline-offset: 2px;
+}
+
+/* Print styles */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  
+  body {
+    background: white;
+  }
+  
+  .card {
+    box-shadow: none;
+    border: 1px solid #e5e5e5;
+  }
+}

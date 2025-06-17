@@ -1,0 +1,148 @@
+name: Preview Deployment
+
+on:
+  push:
+    branches-ignore:
+      - main
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+env:
+  VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+  VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+jobs:
+  deploy-preview:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: Run type check
+        run: npm run type-check
+        
+      - name: Run linting
+        run: npm run lint
+        
+      - name: Run unit tests
+        run: npm run test
+        
+      - name: Install Vercel CLI
+        run: npm install --global vercel@latest
+        
+      - name: Pull Vercel Environment Information
+        run: vercel pull --yes --environment=preview --token=${{ secrets.VERCEL_TOKEN }}
+        
+      - name: Build Project Artifacts
+        run: vercel build --token=${{ secrets.VERCEL_TOKEN }}
+        
+      - name: Deploy to Vercel
+        id: deploy
+        run: |
+          DEPLOYMENT_URL=$(vercel deploy --prebuilt --token=${{ secrets.VERCEL_TOKEN }})
+          echo "deployment_url=$DEPLOYMENT_URL" >> $GITHUB_OUTPUT
+          echo "Preview deployment: $DEPLOYMENT_URL"
+          
+      - name: Comment Preview URL on PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const deploymentUrl = '${{ steps.deploy.outputs.deployment_url }}';
+            const comment = `## 🚀 Preview Deployment
+            
+            Your preview deployment is ready!
+            
+            **Preview URL:** ${deploymentUrl}
+            
+            ### Testing Checklist
+            - [ ] Authentication flow works
+            - [ ] Tasks can be created and completed
+            - [ ] Grocery list functions properly
+            - [ ] Calendar events display correctly
+            - [ ] Real-time sync is working
+            - [ ] Mobile responsiveness is good
+            
+            ### Auto E2E Tests
+            E2E tests will run automatically against this preview URL.
+            `;
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
+            
+      - name: Wait for deployment to be ready
+        run: |
+          echo "Waiting for deployment to be ready..."
+          sleep 30
+          
+      - name: Run E2E tests on preview
+        run: |
+          export PLAYWRIGHT_BASE_URL="${{ steps.deploy.outputs.deployment_url }}"
+          npx playwright install --with-deps
+          npx playwright test
+        env:
+          CI: true
+          
+      - name: Upload E2E test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
+          
+      - name: Comment E2E results on PR
+        if: github.event_name == 'pull_request' && always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+            
+            let testStatus = '✅ Passed';
+            let testDetails = 'All E2E tests passed successfully!';
+            
+            try {
+              // Check if test results exist
+              if (fs.existsSync('test-results')) {
+                const files = fs.readdirSync('test-results');
+                if (files.length > 0) {
+                  testStatus = '❌ Failed';
+                  testDetails = `Some E2E tests failed. Check the artifacts for details.`;
+                }
+              }
+            } catch (error) {
+              testStatus = '⚠️ Unknown';
+              testDetails = 'Could not determine test status.';
+            }
+            
+            const comment = `## 🧪 E2E Test Results
+            
+            **Status:** ${testStatus}
+            **Details:** ${testDetails}
+            
+            **Preview URL:** ${{ steps.deploy.outputs.deployment_url }}
+            
+            View detailed test results in the Actions tab.
+            `;
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });

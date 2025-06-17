@@ -1,0 +1,117 @@
+name: Production Deployment
+
+on:
+  push:
+    branches:
+      - main
+
+env:
+  VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+  VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+jobs:
+  deploy-production:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: Run type check
+        run: npm run type-check
+        
+      - name: Run linting
+        run: npm run lint
+        
+      - name: Run unit tests
+        run: npm run test
+        
+      - name: Run database migrations
+        run: |
+          echo "Running database migrations..."
+          # Add Supabase CLI migration commands here
+          # npx supabase db push --password ${{ secrets.SUPABASE_DB_PASSWORD }}
+          
+      - name: Install Vercel CLI
+        run: npm install --global vercel@latest
+        
+      - name: Pull Vercel Environment Information
+        run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+        
+      - name: Build Project Artifacts
+        run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
+        
+      - name: Deploy to Vercel Production
+        id: deploy
+        run: |
+          DEPLOYMENT_URL=$(vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }})
+          echo "deployment_url=$DEPLOYMENT_URL" >> $GITHUB_OUTPUT
+          echo "Production deployment: $DEPLOYMENT_URL"
+          
+      - name: Wait for deployment to be ready
+        run: |
+          echo "Waiting for production deployment to be ready..."
+          sleep 45
+          
+      - name: Run smoke tests on production
+        run: |
+          export PLAYWRIGHT_BASE_URL="${{ steps.deploy.outputs.deployment_url }}"
+          npx playwright install --with-deps
+          npx playwright test --grep="@smoke"
+        env:
+          CI: true
+          
+      - name: Run Lighthouse CI
+        uses: treosh/lighthouse-ci-action@v10
+        with:
+          urls: |
+            ${{ steps.deploy.outputs.deployment_url }}
+            ${{ steps.deploy.outputs.deployment_url }}/dashboard
+          configPath: './lighthouse.config.js'
+          uploadArtifacts: true
+          temporaryPublicStorage: true
+          
+      - name: Notify deployment success
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const deploymentUrl = '${{ steps.deploy.outputs.deployment_url }}';
+            
+            // Create a deployment status
+            github.rest.repos.createDeploymentStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              deployment_id: context.payload.deployment?.id,
+              state: 'success',
+              environment_url: deploymentUrl,
+              description: 'Production deployment successful'
+            });
+            
+      - name: Create release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ github.ref }}
+          body: |
+            ## Changes in this release
+            
+            - Automatic release from production deployment
+            - Deployment URL: ${{ steps.deploy.outputs.deployment_url }}
+            
+            ## Performance Metrics
+            
+            Lighthouse scores and performance metrics are available in the Actions artifacts.
+          draft: false
+          prerelease: false
