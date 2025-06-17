@@ -1,0 +1,26 @@
+[build]
+  command = "npm run build"
+  publish = ".next"
+
+[build.environment]
+  NEXT_PUBLIC_SUPABASE_URL = "https://olzoncsbzccirohnoocq.supabase.co"
+  NEXT_PUBLIC_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9sem9uY3NiemNjaXJvaG5vb2NxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzQ0NzE2NjksImV4cCI6MjA1MDA0NzY2OX0.c7VK6P8gkW5VZFvlgklbYMZBWi8F0wHdLCBVKJlk1u8"
+
+[[redirects]]
+  from = "/dashboard"
+  to = "/dashboard/tasks"
+  status = 302
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+[functions]
+  directory = "netlify/functions"
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
